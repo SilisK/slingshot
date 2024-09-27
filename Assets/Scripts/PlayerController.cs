@@ -1,4 +1,5 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -14,6 +15,9 @@ public class PlayerController : MonoBehaviour
 
     private Vector3 initialMousePosition; // Store the initial mouse position
     private Vignette vignette; // Store the Vignette component
+
+    [Range(0.01f, 1f)]
+    public float launchThreshold = 0.3f;
 
     void Start()
     {
@@ -31,6 +35,26 @@ public class PlayerController : MonoBehaviour
         TrackMousePosition();
     }
 
+    public TMP_Text chargeText;
+    public TMP_Text canLaunchText;
+
+    float charge;
+    void HandleUI(float chargeValue)
+    {
+        charge = Mathf.Lerp(charge, chargeValue, 0.1f);
+        chargeText.text = charge.ToString("0.00");
+        if(charge > launchThreshold)
+        {
+            canLaunchText.text = "Ready";
+            canLaunchText.color = Color.green;
+        }
+        else
+        {
+            canLaunchText.text = "Not Ready";
+            canLaunchText.color = Color.red;
+        }
+    }
+
     IEnumerator SpawnProjectile()
     {
         yield return new WaitForSeconds(1f);
@@ -39,42 +63,44 @@ public class PlayerController : MonoBehaviour
         ProjectileInstance = Instantiate(ProjectilePrefab, ProjectileSpawnPosition.position, Quaternion.identity);
     }
 
+    Vector3 mouseDelta;
     void TrackMousePosition()
     {
         // Initalize
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && ProjectileInstance != null)
         {
             initialMousePosition = Input.mousePosition; // Capture the initial position
         }
 
-        Vector3 mouseDelta = Input.mousePosition - initialMousePosition;
+        //if(ProjectileInstance != null)
+        //{
+        //    mouseDelta = Input.mousePosition - initialMousePosition;
+        //}
+        mouseDelta = Input.mousePosition - initialMousePosition;
+
         float deltaY = -mouseDelta.y / 1000f; // Sensitivity adjustment
 
         if (Input.GetMouseButton(0) && ProjectileInstance != null)
         {
-            // Pulling back the slingshot
-            if (vignette != null)
-            {
-                // Adjust intensity based on deltaY
-                float newIntensity = Mathf.Clamp(vignette.intensity.value + (0.4f * deltaY), 0.2f, 0.4f);
-                vignette.intensity.value = newIntensity; // Update vignette intensity directly
+            // Adjust intensity based on deltaY
+            float newIntensity = Mathf.Clamp(vignette.intensity.value + (0.4f * deltaY), 0.2f, 0.4f);
+            vignette.intensity.value = newIntensity; // Update vignette intensity directly
 
-                // Limit the change in field of view between 60f and 65f
-                float targetFOV = Mathf.Clamp(Camera.main.fieldOfView + (65f * deltaY), 60f, 65f);
-                HandleIntensityEffect(vignette, newIntensity, targetFOV);
-            }
+            // Limit the change in field of view between 60f and 65f
+            float targetFOV = Mathf.Clamp(Camera.main.fieldOfView + (65f * deltaY), 60f, 65f);
+            HandleIntensityEffect(vignette, newIntensity, targetFOV);
+
+            HandleUI(deltaY);
         }
         else
         {
             // Reset to default values when mouse is released
-            if (vignette != null)
-            {
-                HandleIntensityEffect(vignette, 0.2f, 60f); // Default values
-            }
+            HandleIntensityEffect(vignette, 0.2f, 60f); // Default values
+            HandleUI(0);
         }
 
         // Launch Projectile
-        if (deltaY > 0.5f && Input.GetMouseButtonUp(0) && ProjectileInstance != null)
+        if (deltaY > launchThreshold && Input.GetMouseButtonUp(0) && ProjectileInstance != null)
         {
             Rigidbody rb = ProjectileInstance.GetComponent<Rigidbody>();
             rb.AddForce(Camera.main.transform.forward * 10, ForceMode.Impulse);
@@ -84,15 +110,14 @@ public class PlayerController : MonoBehaviour
             Destroy(ProjectileInstance, 20f);
             ProjectileInstance = null;
             StartCoroutine(SpawnProjectile());
+
+            initialMousePosition = Vector3.zero;
         }
     }
 
     /// <summary>
     /// Controls the intensity of the vignette and camera field of view.
     /// </summary>
-    /// <param name="vignette">The Vignette component.</param>
-    /// <param name="vignetteIntensity">Target intensity of the vignette.</param>
-    /// <param name="fieldOfView">Target field of view for the camera.</param>
     void HandleIntensityEffect(Vignette vignette, float vignetteIntensity, float fieldOfView)
     {
         vignette.intensity.value = Mathf.Lerp(vignette.intensity.value, vignetteIntensity, 3.5f * Time.deltaTime);
