@@ -78,6 +78,8 @@ public class PlayerController : MonoBehaviour
         if (Input.GetMouseButtonDown(0) && ProjectileInstance != null)
         {
             initialMousePosition = Input.mousePosition; // Capture the initial position
+
+            Marker.gameObject.SetActive(true);
         }
 
         mouseDelta = Input.mousePosition - initialMousePosition;
@@ -96,6 +98,12 @@ public class PlayerController : MonoBehaviour
             HandleIntensityEffect(vignette, newIntensity, targetFOV);
 
             HandleUI(deltaY, deltaX);
+
+            // Fix the marker position, lacks accuracy and doesn't help much
+            Vector3 markerPositionX = Vector3.ClampMagnitude((deltaX * 10) * ProjectileSpawnPosition.right, 15);
+            Vector3 markerPositionY = Vector3.ClampMagnitude((deltaY * 7.5f) * ProjectileSpawnPosition.up, 15);
+            Vector3 markerPositionZ = Vector3.ClampMagnitude((deltaY * 20.5f) * ProjectileSpawnPosition.forward, 15);
+            Marker.position =  markerPositionX + markerPositionY + markerPositionZ;
         }
         else
         {
@@ -108,8 +116,8 @@ public class PlayerController : MonoBehaviour
         if (deltaY > launchThreshold && Input.GetMouseButtonUp(0) && ProjectileInstance != null)
         {
             Rigidbody rb = ProjectileInstance.GetComponent<Rigidbody>();
-            rb.AddForce(15 * deltaY * Camera.main.transform.forward, ForceMode.Impulse);
-            rb.AddForce(4.5f * deltaY * Camera.main.transform.up, ForceMode.Impulse);
+            rb.AddForce(20.5f * deltaY * Camera.main.transform.forward, ForceMode.Impulse);
+            rb.AddForce(7.5f * deltaY * Camera.main.transform.up, ForceMode.Impulse);
             rb.AddForce(10 * deltaX * Camera.main.transform.right, ForceMode.Impulse);
 
             Destroy(ProjectileInstance, 20f);
@@ -117,6 +125,8 @@ public class PlayerController : MonoBehaviour
             StartCoroutine(SpawnProjectile());
 
             initialMousePosition = Vector3.zero;
+
+            Marker.gameObject.SetActive(false);
         }
     }
 
