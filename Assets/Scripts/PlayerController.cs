@@ -19,6 +19,8 @@ public class PlayerController : MonoBehaviour
     [Range(0.01f, 1f)]
     public float launchThreshold = 0.3f;
 
+    public Transform Marker;
+
     void Start()
     {
         // Attempt to get the Vignette component once on start
@@ -35,15 +37,21 @@ public class PlayerController : MonoBehaviour
         TrackMousePosition();
     }
 
-    public TMP_Text chargeText;
+    [Header("UI")]
+    public TMP_Text deltaYText;
+    public TMP_Text deltaXText;
     public TMP_Text canLaunchText;
 
-    float charge;
-    void HandleUI(float chargeValue)
+    float chargeY, chargeX;
+    void HandleUI(float chargeYValue = 0, float chargeXValue = 0)
     {
-        charge = Mathf.Lerp(charge, chargeValue, 0.1f);
-        chargeText.text = charge.ToString("0.00");
-        if(charge > launchThreshold)
+        chargeY = Mathf.Lerp(chargeY, chargeYValue, 0.1f);
+        chargeX = Mathf.Lerp(chargeX, chargeXValue, 0.1f);
+
+        deltaYText.text = chargeY.ToString("0.00");
+        deltaXText.text = chargeX.ToString("0.00");
+
+        if (chargeY > launchThreshold)
         {
             canLaunchText.text = "Ready";
             canLaunchText.color = Color.green;
@@ -72,13 +80,10 @@ public class PlayerController : MonoBehaviour
             initialMousePosition = Input.mousePosition; // Capture the initial position
         }
 
-        //if(ProjectileInstance != null)
-        //{
-        //    mouseDelta = Input.mousePosition - initialMousePosition;
-        //}
         mouseDelta = Input.mousePosition - initialMousePosition;
 
         float deltaY = -mouseDelta.y / 1000f; // Sensitivity adjustment
+        float deltaX = -mouseDelta.x / 1000f;
 
         if (Input.GetMouseButton(0) && ProjectileInstance != null)
         {
@@ -90,22 +95,22 @@ public class PlayerController : MonoBehaviour
             float targetFOV = Mathf.Clamp(Camera.main.fieldOfView + (65f * deltaY), 60f, 65f);
             HandleIntensityEffect(vignette, newIntensity, targetFOV);
 
-            HandleUI(deltaY);
+            HandleUI(deltaY, deltaX);
         }
         else
         {
             // Reset to default values when mouse is released
             HandleIntensityEffect(vignette, 0.2f, 60f); // Default values
-            HandleUI(0);
+            HandleUI();
         }
 
         // Launch Projectile
         if (deltaY > launchThreshold && Input.GetMouseButtonUp(0) && ProjectileInstance != null)
         {
             Rigidbody rb = ProjectileInstance.GetComponent<Rigidbody>();
-            rb.AddForce(Camera.main.transform.forward * 10, ForceMode.Impulse);
-            rb.AddForce(Camera.main.transform.up * 5, ForceMode.Impulse);
-            rb.AddForce(10 * (-mouseDelta.x / 1000) * Camera.main.transform.right, ForceMode.Impulse);
+            rb.AddForce(15 * deltaY * Camera.main.transform.forward, ForceMode.Impulse);
+            rb.AddForce(4.5f * deltaY * Camera.main.transform.up, ForceMode.Impulse);
+            rb.AddForce(10 * deltaX * Camera.main.transform.right, ForceMode.Impulse);
 
             Destroy(ProjectileInstance, 20f);
             ProjectileInstance = null;

@@ -100,4 +100,8 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Assets Packages
+Assets/JMO Assets
+JMO Assets.meta
+
 # End of https://www.toptal.com/developers/gitignore/api/unity,windows
